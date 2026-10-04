@@ -1,0 +1,63 @@
+"workshopitem"
+{
+	"appid"		"2489330"
+	"publishedfileid"		"0"
+	"contentfolder"		"E:\modding\whiskerwood-setsail\workshop\content"
+	"previewfile"		"E:\modding\whiskerwood-setsail\docs\screenshot.png"
+	"title"		"SetSail - Auto-sail for fishing, trade and guano ships (beta)"
+	"description"		"[b]Stop clicking Send to sea on every dock.[/b]
+
+SetSail adds an [b]Auto-sail[/b] toggle to the Deep Sea Fishing Dock, Trade Ship Dock and Guano Collection Dock windows. Switch it on and that dock's ship leaves by itself whenever it is ready: repaired, crewed and supplied.
+
+[i]Version 0.1 is a beta. It works in my own town but hasn't been tested widely yet. Please report anything odd in the comments.[/i]
+
+[h2]How to use it[/h2]
+[olist]
+[*]Open a fishing, trade or guano dock.
+[*]Under the ship's name click [b]Auto-sail: Off[/b] to switch it [b]On[/b].
+[*]Done. The ship now sails by itself whenever it is ready, to wherever the dock would send it anyway (fishing grounds, your trade partner, guano harvesting).
+[/olist]
+Auto-sail is [b]off for every dock until you switch it on[/b], so nothing changes in your town until you choose so.
+
+[h2]Why does the ship's name change?[/h2]
+Switching Auto-sail on adds an [b][auto][/b] tag to the ship's name, for example [i]WSS Merrythought [auto][/i]. Switching it off removes it.
+Mods can't store their own data in a save file, but the game does save ship names. The tag is how SetSail remembers which docks are on auto-sail, separately for every save.
+[list]
+[*]You can see at a glance which ships are on auto-sail.
+[*]You can also type [auto] into a ship's name yourself (pencil icon). Capitals don't matter.
+[*]If you remove the mod, the tag stays in the name until you delete it; the ship just won't sail by itself any more.
+[/list]
+
+[h2]When do ships leave?[/h2]
+The game doesn't tell mods the moment a crew has boarded, and checking all the time would cost performance in big towns. So SetSail checks [b]six times per in-game day[/b], spread over the daytime:
+[list]
+[*]at dawn, and when a save finishes loading,
+[*]four more times during the day,
+[*]one last time just before evening,
+[*]and whenever a sea notice comes in (for example trade ready).
+[/list]
+At each check every auto-sail ship that the game would let you send right now is sent. Nothing is sent at night: the whiskers are asleep. A ship can therefore wait in port for a little while (at most until the next check). A ship still missing crew, supplies or repairs waits for a later check, just like the greyed-out Send to sea button.
+
+[h2]Features[/h2]
+[list]
+[*]Per-dock Auto-sail toggle, off by default
+[*]Fishing, trade and guano docks; docks you build later get the toggle too
+[*]Uses the game's own Send to sea command, with the game's own departure checks (crew, supplies, approval)
+[*]Saved per save game through the ship name
+[*]Light on performance: six checks per day, only fishing, trade and guano docks are looked at, never all buildings
+[/list]
+
+[h2]Known limitations[/h2]
+[list]
+[*]Beta, tested on game version 0.7.207.
+[*]Ships leave at the six daily checks, not the very moment they are ready.
+[*]The toggle shows up when you open the dock window by clicking the dock (or use the window's own buttons). If it ever shows the wrong state, click the dock again.
+[*]Scouting, hunting, naval combat and storage docks are not handled.
+[/list]
+
+[h2]Source[/h2]
+[url=https://github.com/ringuh/whiskerwood-setsail]GitHub[/url]
+
+Created using the [url=https://github.com/Whiskerwood-Modding/Whiskerwood-Project]Whiskerwood modkit[/url]."
+	"changenote"		"0.1: First beta. Auto-sail toggle for fishing, trade and guano docks, six checks per in-game day, setting stored as an [auto] tag in the ship name."
+}
