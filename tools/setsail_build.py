@@ -1,7 +1,7 @@
 """Generates the Blueprint paste text (T3D) for the SetSail mod into tools/out/.
 Usage: python tools/setsail_build.py   (needs the modkit's jmap, see t3d.py)
 
-What the mod does: fishing and trade ships leave their dock by themselves when they are ready.
+What the mod does: fishing, trade, guano, exploration and naval ships leave their dock by themselves when they are ready.
 
 How (game 0.7.207, UE 5.8):
   - Fishing / trade docks are GridActors navaldock_fishing_C / navaldock_trade_C (building table rows
@@ -27,8 +27,8 @@ from t3d import *
 OUT = os.path.join(os.path.dirname(__file__), 'out')
 os.makedirs(OUT, exist_ok=True)
 MOD = 'SetSail'
-VERSION = '0.1'
-BUILD = 'v16'
+VERSION = '1.0'
+BUILD = 'v19'
 TRACE = False   # TEMP: ungated log lines at BeginPlay / OnLoaded to find out what runs. Remove before release.
 M = '/Game/Mods/%s/' % MOD
 STARTUP, MAPLOAD = M + 'BP_Startup', M + 'BP_MapLoad'
@@ -45,7 +45,7 @@ TRACKER = '/Script/SystemCore.ActivityTracker'
 OCEAN = '/Script/NauticalKit.NauticalOcean'
 NOTICE = '/Script/NauticalKit.NauticalNotice'
 TABLE = 'GridActors'
-OPT_FISH, OPT_TRADE, OPT_GUANO = 'SetSail_Fishing', 'SetSail_Trade', 'SetSail_Guano'
+OPT_FISH, OPT_TRADE, OPT_GUANO, OPT_SCOUT, OPT_NAVAL = 'SetSail_Fishing', 'SetSail_Trade', 'SetSail_Guano', 'SetSail_Scout', 'SetSail_Naval'
 CHECKS_PER_DAY = 6        # day start + 5 more, spread over the daytime part of the day (whiskers sleep at night)
 EVENING_MARGIN = '10.0'   # game seconds: the last check runs this long before evening (WorldTime.TimeUntilNextPhase)
 AUTO_TAG = '[auto]'       # only ships whose name contains this (any case) are sent
@@ -61,9 +61,11 @@ LABEL_ON, LABEL_OFF = 'Auto-sail: On', 'Auto-sail: Off'
 COLOR_ON = '(R=0.815000,G=0.672000,B=0.381000,A=1.000000)'    # E9D7A6 (sRGB) in linear
 COLOR_OFF = '(R=0.262000,G=0.205000,B=0.125000,A=1.000000)'   # 8C7D63 (sRGB) in linear
 ANCHOR_NAME = 'ButtonEditName'   # the dock window's rename (pencil) button; the toggle goes into the same panel
-DIAG = []  # was: [('navalScoutDock', 'scout'), ('navalhuntingdock', 'hunting'), ('navalwarDock', 'war'), ('navalStorageDock', 'storage')]  # TEMP: only counted + logged
+DIAG = []  # was: [('navalhuntingdock', 'hunting'), ('navalwarDock', 'war'), ('navalStorageDock', 'storage')]  # TEMP: only counted + logged
 READY_PHASE = '5'   # EWorkdockPhase::WORKSHIP_READY_TO_DEPLOY
-DOCKS = [('navalfishingdock', 'fishing', OPT_FISH), ('navaltradeDock', 'trade', OPT_TRADE), ('navalGuanoDock', 'guano', OPT_GUANO)]  # table row, label, option id (stored in DockOpt)
+DOCKS = [('navalfishingdock', 'fishing', OPT_FISH), ('navaltradeDock', 'trade', OPT_TRADE), ('navalGuanoDock', 'guano', OPT_GUANO),
+         ('navalScoutDock', 'exploration', OPT_SCOUT),   # 0.2: Exploration Dock (navaldock_scout_C), goal 'Leave port and await orders'
+         ('navalwarDock', 'naval', OPT_NAVAL)]           # 0.2: Naval Dock (navaldock_war_C), warships  # table row, label, option id (stored in DockOpt)
 
 ACTOR = OBJ('/Script/Engine.Actor')
 ACLS = CLS('/Script/Engine.Actor')
