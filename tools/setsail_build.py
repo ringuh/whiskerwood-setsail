@@ -28,7 +28,7 @@ OUT = os.path.join(os.path.dirname(__file__), 'out')
 os.makedirs(OUT, exist_ok=True)
 MOD = 'SetSail'
 VERSION = '1.1'
-BUILD = 'v20'
+BUILD = 'v21'
 TRACE = False   # TEMP: ungated log lines at BeginPlay / OnLoaded to find out what runs. Remove before release.
 M = '/Game/Mods/%s/' % MOD
 STARTUP, MAPLOAD = M + 'BP_Startup', M + 'BP_MapLoad'
@@ -235,7 +235,7 @@ for i, (oid, disp, desc) in enumerate([
 open(OUT + '/BP_Startup.txt', 'w', encoding='utf-8').write(g.text())
 
 # =========================================================================== BP_MapLoad
-# Variables: Ready (Boolean), SetupTries (Integer) [1.1], Debug (Boolean), View (UI_WorkDockView object ref), Docks (Actor object ref ARRAY), DockOpt (String ARRAY), Tries (Integer), RetryPending (Boolean), DockClasses (Actor class ARRAY), DockKinds (String ARRAY), Target (Panel Widget ref), Toggle (WBP_SailToggle ref), Waiter (WBP_SailWaiter ref), Win (User Widget ref), Injected (User Widget ref), Anchor (Widget ref)
+# Variables: Ready (Boolean), SetupTries (Integer), Rescan (Boolean) [1.1], Debug (Boolean), View (UI_WorkDockView object ref), Docks (Actor object ref ARRAY), DockOpt (String ARRAY), Tries (Integer), RetryPending (Boolean), DockClasses (Actor class ARRAY), DockKinds (String ARRAY), Target (Panel Widget ref), Toggle (WBP_SailToggle ref), Waiter (WBP_SailWaiter ref), Win (User Widget ref), Injected (User Widget ref), Anchor (Widget ref)
 g = Graph(MAPLOAD)
 
 # ---- BeginPlay: bind ModAPI events
@@ -296,7 +296,18 @@ if TRACE:
 else:
     ex(prevx, sdb)
 lr = log(g, 2000, -2400, msg='SetSail %s (%s): game ready, looking for docks' % (VERSION, BUILD), name='LogReady'); ex(sdb, lr)
-prev = (lr, 'then')
+# ---- v21: dock scan, also re-run at onLoadingFinished. At a save load BeginPlay runs before the save's docks exist
+#      (v20 logged "docks found: 0" at every load), so the guard's Ready branch (= OnLoaded after setup) sets
+#      Rescan = true and runs the scan again; the scan clears the dock lists first, and after a rescan it only
+#      checks the docks (no second ocean bind / view / toggle / waiter).
+sr0 = g.setv('Rescan', BOOL, 2250, -2550, value='false', name='FirstScan'); ex(lr, sr0)
+sr1 = g.setv('Rescan', BOOL, -50, -2550, value='true', name='MarkRescan'); ex(gr, sr1)
+scanin = knot(g, 2450, -2600, 'ScanStart'); link(sr0['then'], scanin['InputPin']); link(sr1['then'], scanin['InputPin'])
+prev = (scanin, 'OutputPin')
+for ci, (cvar, ct) in enumerate([('Docks', ACTOR), ('DockOpt', STR), ('DockClasses', ACLS), ('DockKinds', STR)]):
+    cl = arr_fn(g, 'Array_Clear', ct, 2550 + 200 * ci, -2750, 'Clear' + cvar)
+    link(g.get(cvar, ARR(ct), 2550 + 200 * ci, -2900, name=cvar + 'Clr')[cvar], cl['TargetArray'])
+    ex(prev[0], cl, prev[1]); prev = (cl, 'then')
 X = 1400
 for i, (row, label, optid) in enumerate(DOCKS):
     Y = -2400 + 0 * i
@@ -358,7 +369,9 @@ for j, (row, label) in enumerate(DIAG):
     prev = (j2, 'OutputPin')
 # ocean notices
 XO = X + 2600 * len(DOCKS) + 1400 * len(DIAG)
-goc = g.call(GS + ':GetActorOfClass', 'FindOcean', XO, -2400, ActorClass=OCEAN); ex(prev[0], goc, prev[1])
+brs = g.branch(XO - 300, -2400, 'BrRescan'); link(g.get('Rescan', BOOL, XO - 450, -2250, name='RescanGet')['Rescan'], brs['Condition']); ex(prev[0], brs, prev[1])
+lrs = log(g, XO - 300, -2700, msg='SetSail: docks read again after loading', name='LogRescan'); ex(brs, lrs)
+goc = g.call(GS + ':GetActorOfClass', 'FindOcean', XO, -2400, ActorClass=OCEAN); ex(brs, goc, 'else')
 goc['ReturnValue'].t = OBJ(OCEAN)
 bo = g.branch(XO + 250, -2400, 'BrOcean'); link(is_valid(g, goc['ReturnValue'], XO + 250, -2200, 'OceanValid'), bo['Condition']); ex(goc, bo)
 bn1 = bind(g, goc['ReturnValue'], OCEAN, 'OnNoticeChange', '/Script/NauticalKit', 'OnNoticeChange__DelegateSignature', evN, XO + 500, -2400, 'BindNotice'); ex(bo, bn1)
@@ -582,6 +595,7 @@ SCAN = knot(g, 1300, 1600, 'CheckDocks')
 EVT = knot(g, 1000, 1500, 'NewEvent')   # notices: just check
 link(PENDING_EVT_LINK['then'], EVT['InputPin'])   # toggle switched: check right away
 link(EVT['OutputPin'], SCAN['InputPin'])
+link(lrs['then'], EVT['InputPin'])   # v21: after the load rescan, check the docks right away
 DAYCHAIN = knot(g, 900, 1300, 'StartDayChecks')   # load + day start: check now and schedule the rest of today's checks
 
 def schedule(x, y, name):

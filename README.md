@@ -129,6 +129,7 @@ Assets:
 | `Tries` | Integer |
 | `Ready` | Boolean |
 | `SetupTries` | Integer |
+| `Rescan` | Boolean |
 | `RetryPending` | Boolean |
 | `Toggle` | WBP_SailToggle, object reference |
 | `Waiter` | WBP_SailWaiter, object reference |
