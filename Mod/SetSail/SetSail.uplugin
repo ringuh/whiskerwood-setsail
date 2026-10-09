@@ -1,7 +1,7 @@
 {
 	"Name": "SetSail",
 	"Description": "Adds an Auto-sail toggle to every dock with a Send to sea button (fishing, trade, guano, exploration and naval docks): switched on, the dock's ship leaves by itself when it is ready (checked six times per in-game day). The setting is stored as an [auto] tag in the ship's name.",
-	"Version": "1.0",
+	"Version": "1.1",
 	"CreatedBy": "rinku",
 	"EngineVersion": "5.8"
 }

@@ -18,7 +18,7 @@ and on each one checks the known docks (only the two dock classes, never all bui
 sends a ready ship to sea. The debug log shows which event fires when a ship becomes ready.
 
 Assets (/Game/Mods/SetSail/): BP_Startup (Actor), BP_MapLoad (Actor), PAL_SetSail (chunk 26).
-Debug log needs Saved\\mods\\SetSailConfig\\debug.ini (any text).
+Debug log needs Saved\\mods\\SetSailConfig\\debug.txt (any text).
 """
 import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
@@ -27,8 +27,8 @@ from t3d import *
 OUT = os.path.join(os.path.dirname(__file__), 'out')
 os.makedirs(OUT, exist_ok=True)
 MOD = 'SetSail'
-VERSION = '1.0'
-BUILD = 'v19'
+VERSION = '1.1'
+BUILD = 'v20'
 TRACE = False   # TEMP: ungated log lines at BeginPlay / OnLoaded to find out what runs. Remove before release.
 M = '/Game/Mods/%s/' % MOD
 STARTUP, MAPLOAD = M + 'BP_Startup', M + 'BP_MapLoad'
@@ -235,7 +235,7 @@ for i, (oid, disp, desc) in enumerate([
 open(OUT + '/BP_Startup.txt', 'w', encoding='utf-8').write(g.text())
 
 # =========================================================================== BP_MapLoad
-# Variables: Debug (Boolean), View (UI_WorkDockView object ref), Docks (Actor object ref ARRAY), DockOpt (String ARRAY), Tries (Integer), RetryPending (Boolean), DockClasses (Actor class ARRAY), DockKinds (String ARRAY), Target (Panel Widget ref), Toggle (WBP_SailToggle ref), Waiter (WBP_SailWaiter ref), Win (User Widget ref), Injected (User Widget ref), Anchor (Widget ref)
+# Variables: Ready (Boolean), SetupTries (Integer) [1.1], Debug (Boolean), View (UI_WorkDockView object ref), Docks (Actor object ref ARRAY), DockOpt (String ARRAY), Tries (Integer), RetryPending (Boolean), DockClasses (Actor class ARRAY), DockKinds (String ARRAY), Target (Panel Widget ref), Toggle (WBP_SailToggle ref), Waiter (WBP_SailWaiter ref), Win (User Widget ref), Injected (User Widget ref), Anchor (Widget ref)
 g = Graph(MAPLOAD)
 
 # ---- BeginPlay: bind ModAPI events
@@ -254,10 +254,30 @@ else:
     ex(bp, b0)
 b1 = bind(g, api['ReturnValue'], API, 'onDayStart', '/Script/SystemCore', 'ModAPI_OnDayStart__DelegateSignature', evD, 700, -3000, 'BindDay'); ex(b0, b1)
 
-# ---- OnLoaded: debug switch, find docks, bind candidate events
-# debug.ini: v2 showed ReadModTextFile("SetSailConfig", "debug.ini") returns '' in 5.8. Try three locations; any text = Debug on.
+# ---- Setup guard (1.1): a NEW game doesn't deliver onLoadingFinished to BP_MapLoad, so setup also runs from
+#      BeginPlay. BeginPlay (after the binds) and OnLoaded enter the same guard: Ready -> nothing; player controller
+#      and the GridActors table there -> Ready = true -> setup once; else one-shot 1 s timer back into OnLoaded
+#      (max 10 tries, SetupTries; 'Tries' is already the checks-left counter).
+gr = g.branch(-300, -2000, 'BrReady'); link(g.get('Ready', BOOL, -450, -1850, name='ReadyGet')['Ready'], gr['Condition'])
+ex(b1, gr); ex(evL, gr)
+pcG = g.call(GS + ':GetPlayerController', 'PCGuard', -300, -1700)
+pcv = g.call(KSL + ':IsValid', 'PCGuardValid', -150, -1700); link(pcG['ReturnValue'], pcv['Object'])
+htb = api_call(g, 'HasDataTable', -150, -1550, name='GuardHasTable', datatableName=TABLE)
+gok = g.call(KML + ':BooleanAND', 'GuardOk', 50, -1650); link(pcv['ReturnValue'], gok['A']); link(htb['ReturnValue'], gok['B'])
+gp = g.branch(-50, -2000, 'BrCanSetup'); link(gok['ReturnValue'], gp['Condition']); ex(gr, htb, 'else'); ex(htb, gp)   # HasDataTable is impure
+srd = g.setv('Ready', BOOL, 150, -2000, value='true', name='SetReady'); ex(gp, srd)
+stg0 = g.get('SetupTries', INT, 0, -1350, name='SetupTriesGet')
+stl = g.call(KML + ':Less_IntInt', 'SetupTriesLeft', 150, -1350, B='10'); link(stg0['SetupTries'], stl['A'])
+bst = g.branch(150, -1550, 'BrSetupRetry'); link(stl['ReturnValue'], bst['Condition']); ex(gp, bst, 'else')
+sta = g.call(KML + ':Add_IntInt', 'SetupTriesPlus', 300, -1400, B='1'); link(stg0['SetupTries'], sta['A'])
+sst = g.setv('SetupTries', INT, 400, -1550, name='SetSetupTries'); link(sta['ReturnValue'], sst['SetupTries']); ex(bst, sst)
+stm = g.call(KSL + ':K2_SetTimer', 'RetrySetup', 650, -1550, FunctionName='OnLoaded', Time='1.000000', bLooping='false')
+stn = g.add(BG + 'K2Node_Self', 'MeSetupTimer', [], 500, -1400); stn.pin('self', T('object', sub='self'), out=True); link(stn['self'], stm['Object'])
+ex(sst, stm)
+
+# ---- Setup (once): debug switch, find docks, bind candidate events
 READS = [(MOD + 'Config', 'debug')]   # ModAPI.ReadModTextFile appends '.txt': reads Saved\\mods\\SetSailConfig\\debug.txt
-prevx = evL; parts = []
+prevx = srd; parts = []
 for i, (mn, fn) in enumerate(READS):
     r = api_call(g, 'ReadModTextFile', 300 + 300 * i, -2400, name='ReadDebugFile%d' % i, modName=mn, Filename=fn)
     ex(prevx, r); prevx = r; parts.append(r['ReturnValue'])
@@ -275,7 +295,7 @@ if TRACE:
     ex(prevx, t1); ex(t1, sdb)
 else:
     ex(prevx, sdb)
-lr = log(g, 2000, -2400, msg='SetSail %s (%s): save loaded, looking for docks' % (VERSION, BUILD), name='LogReady'); ex(sdb, lr)
+lr = log(g, 2000, -2400, msg='SetSail %s (%s): game ready, looking for docks' % (VERSION, BUILD), name='LogReady'); ex(sdb, lr)
 prev = (lr, 'then')
 X = 1400
 for i, (row, label, optid) in enumerate(DOCKS):

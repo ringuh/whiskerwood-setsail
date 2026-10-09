@@ -74,6 +74,7 @@ So a ship can wait in port for a short while before it leaves (at most until the
 
 ## Version history
 
+- **1.1** – works in a new game too (before, the Auto-sail toggle only appeared after loading a save).
 - **1.0** – Exploration Docks and Naval Docks get the Auto-sail toggle too, so every dock with a Send to sea button is covered. No longer beta.
 - **0.1** – first beta: Auto-sail toggle for fishing, trade and guano docks, six checks per in-game day.
 
@@ -126,6 +127,8 @@ Assets:
 | `DockClasses` | Actor, **class** reference, **array** |
 | `DockKinds` | String, **array** |
 | `Tries` | Integer |
+| `Ready` | Boolean |
+| `SetupTries` | Integer |
 | `RetryPending` | Boolean |
 | `Toggle` | WBP_SailToggle, object reference |
 | `Waiter` | WBP_SailWaiter, object reference |

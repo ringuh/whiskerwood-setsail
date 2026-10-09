@@ -69,5 +69,5 @@ At each check every auto-sail ship that the game would let you send right now is
 [url=https://github.com/ringuh/whiskerwood-setsail]GitHub[/url]
 
 Created using the [url=https://github.com/Whiskerwood-Modding/Whiskerwood-Project]Whiskerwood modkit[/url]."
-	"changenote"		"1.0: Exploration Docks and Naval Docks get the Auto-sail toggle too, so every dock with a Send to sea button is covered. No longer beta."
+	"changenote"		"1.1: Works in a new game too. Before, the Auto-sail toggle only appeared after loading a save."
 }
